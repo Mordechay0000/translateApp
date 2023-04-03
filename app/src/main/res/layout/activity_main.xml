@@ -15,30 +15,37 @@
         android:layout_margin="20dp"
         android:text="בחירת קובץ" />
 
-    <EditText
-        android:id="@+id/edt_from"
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
         android:layout_margin="20dp"
         android:layout_weight="1"
-        android:ems="10"
+        >
+    <EditText
+        android:id="@+id/edt_from"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
         android:gravity="start|top"
-        android:inputType="textMultiLine" />
+        android:inputType="textImeMultiLine"
+        android:autofillHints=""
+        />
+    </ScrollView>
 
     <EditText
         android:id="@+id/edt_to"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
         android:layout_margin="20dp"
         android:layout_weight="1"
-        android:ems="10"
         android:gravity="start|top"
-        android:inputType="textMultiLine" />
+        android:inputType="textMultiLine"
+        android:autofillHints="" />
 
     <Button
         android:id="@+id/btn_translate"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="20dp"
+        android:isScrollContainer="true"
         android:text="תרגם" />
 </LinearLayout>
