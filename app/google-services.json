@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "304438801702",
+    "project_id": "translatexmlapp",
+    "storage_bucket": "translatexmlapp.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:304438801702:android:4345d3ea6268c3ea507de7",
+        "android_client_info": {
+          "package_name": "com.mordechay.myd.translateapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "304438801702-tsi72pvi0k8umii52pgqplqfb1qaftha.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAnhsh8ky1sHo9364IdBl-nLAbOexw3PL4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "304438801702-tsi72pvi0k8umii52pgqplqfb1qaftha.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
