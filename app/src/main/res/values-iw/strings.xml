@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">תרגום אפליקציות</string>
+    <string name="select_xml_file">בחר קובץ</string>
+    <string name="save_translate">שמירת תרגום</string>
+    <string name="no_selected_file_or_directory">לא נבחר קובץ או תיקייה</string>
+    <string name="file_parser">מנתח קובץ</string>
+    <string name="error_parsing_file">שגיאה בניתוח קובץ</string>
+</resources>

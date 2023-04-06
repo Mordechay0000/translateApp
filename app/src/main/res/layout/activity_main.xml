@@ -13,7 +13,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="20dp"
-        android:text="בחירת קובץ" />
+        android:text="@string/select_xml_file" />
 
     <ScrollView
         android:layout_width="match_parent"
@@ -26,7 +26,7 @@
         android:layout_height="wrap_content"
         android:layout_width="match_parent"
         android:gravity="start|top"
-        android:inputType="textImeMultiLine|textMultiLine"
+        android:inputType="textMultiLine"
         android:autofillHints=""
         />
     </ScrollView>
@@ -47,5 +47,5 @@
         android:layout_height="wrap_content"
         android:layout_margin="20dp"
         android:isScrollContainer="true"
-        android:text="תרגם" />
+        android:text="@string/save_translate" />
 </LinearLayout>
