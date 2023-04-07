@@ -3,7 +3,6 @@ package com.mordechay.myd.translateapp;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityOptionsCompat;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -19,7 +18,6 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
 
@@ -38,10 +36,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private EditText edtTo;
     private ActivityResultLauncher<Intent> getSelectedFileActivityResult;
     private ActivityResultLauncher<Intent> getSaveFileActivityResult;
-    private static String[] skippedChar = new String[]{"@","*","$"};
-    private String nameAttribute;
-    private String content;
-    private static int[] locationSkippedChar;
+    private static final String[] skippedChar = new String[]{"@","*","$"};
+    private StringBuilder nameAttribute;
+    private StringBuilder content;
+    //private static int[] locationSkippedChar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,7 +51,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 result -> {
                     if (result.getResultCode() == Activity.RESULT_OK) {
                         // There are no request codes
-                        Uri fileUri = null;
+                        Uri fileUri;
                         if (result.getData() != null) {
                             fileUri = result.getData().getData();
                             parserXml(fileUri);
@@ -68,7 +66,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 result -> {
                     if (result.getResultCode() == Activity.RESULT_OK) {
                         // There are no request codes
-                        Uri fileUri = null;
+                        Uri fileUri;
                         if (result.getData() != null) {
                             fileUri = result.getData().getData();
                             saveXmlTranslate(fileUri);
@@ -87,13 +85,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     public void onClick(View view) {
-        switch (view.getId()){
-            case R.id.btn_select_file:
-                pickFile(false);
-                break;
-            case R.id.btn_translate:
-                pickFile(true);
-                break;
+        int id = view.getId();
+        if (id == R.id.btn_select_file) {
+            pickFile(false);
+        } else if (id == R.id.btn_translate) {
+            pickFile(true);
         }
 
     }
@@ -144,10 +140,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
     private void saveXmlTranslate(Uri UriSave) {
-        content = edtTo.getText().toString();
-        content = replacementSkippedChars(content, true);
-        String[] arrNameAttribute = nameAttribute.split("\n");
-        String[] arrContent = content.split("\n");
+        content = new StringBuilder(edtTo.getText().toString());
+        content = new StringBuilder(replacementSkippedChars(content.toString(), true));
+        String[] arrNameAttribute = nameAttribute.toString().split("\n");
+        String[] arrContent = content.toString().split("\n");
         createdTranslateXml(arrNameAttribute, arrContent, UriSave);
     }
 
@@ -156,55 +152,57 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void parserXml(Uri selectedFile) {
         edtFrom.setText(R.string.file_parser);
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    InputStream inputStream = getContentResolver().openInputStream(selectedFile);
-                    DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-                    DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-                    Document doc = dBuilder.parse(inputStream);
-                    doc.getDocumentElement().normalize();
-                    NodeList nList = doc.getElementsByTagName("string");
+        new Thread(() -> {
+            try {
+                InputStream inputStream = getContentResolver().openInputStream(selectedFile);
+                DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+                DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+                Document doc = dBuilder.parse(inputStream);
+                doc.getDocumentElement().normalize();
+                NodeList nList = doc.getElementsByTagName("string");
 
-                    nameAttribute = "";
-                    content = "";
-                    for (int i = 0; i < nList.getLength(); i++) {
-                        Node nNode = nList.item(i);
-                        // חיפוש והוספת הערך של ה-attribut name למערך
-                        if (nNode.getNodeType() == Node.ELEMENT_NODE) {
-                            Element element = (Element) nNode;
-                            nameAttribute = nameAttribute + element.getAttribute("name") + "\n";
-                        }
-
-                        content = content + nNode.getTextContent().trim() + "\n";
-                    }
-
-                    if (skippedChar != null && !skippedChar[0].isEmpty()) {
-                        content = replacementSkippedChars(content, false);
-                    }
-
+                nameAttribute = new StringBuilder("");
+                content = new StringBuilder("");
+                for (int i = 0; i < nList.getLength(); i++) {
+                    int finalI = i;
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            edtFrom.setText(content);
-                            if(BuildConfig.DEBUG) {
-                                String[] arrName = nameAttribute.split("\n");
-                                String[] arrContent = content.split("\n");
-                                for (int i = 0; i < arrName.length; i++) {
-                                    String strBody = "name = " + arrName[i] + "  value = " + arrContent[i];
-                                    edtTo.setText(edtTo.getText() + strBody + "\n");
-                                }
-                            }
+                            edtFrom.setText(finalI + " מתוך " + nList.getLength());
                         }
                     });
-                } catch (Exception e) {
-                    runOnUiThread(() -> {
-                                Toast.makeText(MainActivity.this, getText(R.string.error_parsing_file), Toast.LENGTH_SHORT).show();
-                            }
-                    );
-                    e.printStackTrace();
+                    Node nNode = nList.item(i);
+                    // חיפוש והוספת הערך של ה-attribut name למערך
+                    if (nNode.getNodeType() == Node.ELEMENT_NODE) {
+                        Element element = (Element) nNode;
+                        nameAttribute.append(element.getAttribute("name")).append("\n").toString();
+                    }
+
+                    content.append(nNode.getTextContent().trim()).append("\n").toString();
                 }
+
+                if (skippedChar != null && !skippedChar[0].isEmpty()) {
+                    content = new StringBuilder(replacementSkippedChars(content.toString(), false));
+                }
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        edtFrom.setText(content);
+                        if(BuildConfig.DEBUG) {
+                            String[] arrName = nameAttribute.toString().split("\n");
+                            String[] arrContent = content.toString().split("\n");
+                            for (int i = 0; i < arrName.length; i++) {
+                                String strBody = "name = " + arrName[i] + "  value = " + arrContent[i];
+                                edtTo.setText(edtTo.getText() + strBody + "\n");
+                            }
+                        }
+                    }
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, getText(R.string.error_parsing_file), Toast.LENGTH_SHORT).show()
+                );
+                e.printStackTrace();
             }
         }).start();
     }

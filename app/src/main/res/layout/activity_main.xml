@@ -7,45 +7,53 @@
     android:gravity="center"
     android:orientation="vertical"
     tools:context=".MainActivity">
-
-    <Button
-        android:id="@+id/btn_select_file"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="20dp"
-        android:text="@string/select_xml_file" />
-
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_margin="20dp"
-        android:layout_weight="1"
+        android:layout_height="match_parent"
         >
-    <EditText
-        android:id="@+id/edt_from"
-        android:layout_height="wrap_content"
-        android:layout_width="match_parent"
-        android:gravity="start|top"
-        android:inputType="textMultiLine"
-        android:autofillHints=""
-        />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <Button
+                android:id="@+id/btn_select_file"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="20dp"
+                android:text="@string/select_xml_file" />
+
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="100dp"
+                android:layout_margin="20dp">
+
+                <EditText
+                    android:id="@+id/edt_from"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:autofillHints=""
+                    android:gravity="start|top"
+                    android:inputType="textMultiLine" />
+            </ScrollView>
+
+            <EditText
+                android:id="@+id/edt_to"
+                android:layout_width="match_parent"
+                android:layout_height="300dp"
+                android:layout_margin="20dp"
+                android:autofillHints=""
+                android:gravity="start|top"
+                android:inputType="textMultiLine" />
+
+            <Button
+                android:id="@+id/btn_translate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="20dp"
+                android:text="@string/save_translate" />
+        </LinearLayout>
     </ScrollView>
-
-    <EditText
-        android:id="@+id/edt_to"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_margin="20dp"
-        android:layout_weight="1"
-        android:gravity="start|top"
-        android:inputType="textMultiLine"
-        android:autofillHints="" />
-
-    <Button
-        android:id="@+id/btn_translate"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="20dp"
-        android:isScrollContainer="true"
-        android:text="@string/save_translate" />
 </LinearLayout>
