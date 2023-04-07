@@ -5,12 +5,14 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.Activity;
+import android.app.Notification;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import org.w3c.dom.Document;
@@ -36,9 +38,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private EditText edtTo;
     private ActivityResultLauncher<Intent> getSelectedFileActivityResult;
     private ActivityResultLauncher<Intent> getSaveFileActivityResult;
-    private static final String[] skippedChar = new String[]{"@","*","$"};
-    private StringBuilder nameAttribute;
-    private StringBuilder content;
+    private static final String[] skippedChar = new String[]{"@", "*", "$"};
+    private String nameAttribute;
+    private String content;
+    private ProgressBar progressBar;
     //private static int[] locationSkippedChar;
 
     @Override
@@ -55,7 +58,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         if (result.getData() != null) {
                             fileUri = result.getData().getData();
                             parserXml(fileUri);
-                        }else {
+                        } else {
                             Toast.makeText(this, getText(R.string.no_selected_file_or_directory), Toast.LENGTH_SHORT).show();
                         }
 
@@ -70,13 +73,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         if (result.getData() != null) {
                             fileUri = result.getData().getData();
                             saveXmlTranslate(fileUri);
-                        }else {
+                        } else {
                             Toast.makeText(this, getText(R.string.no_selected_file_or_directory), Toast.LENGTH_SHORT).show();
                         }
 
                     }
                 });
 
+        progressBar = findViewById(R.id.progress_bar);
+        progressBar.setMax(100);
+        progressBar.setProgress(0);
+        progressBar.setVisibility(View.VISIBLE);
         edtFrom = findViewById(R.id.edt_from);
         edtTo = findViewById(R.id.edt_to);
         findViewById(R.id.btn_select_file).setOnClickListener(this);
@@ -97,9 +104,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void pickFile(boolean isSave) {
         Intent intent = new Intent(!isSave ? Intent.ACTION_GET_CONTENT : Intent.ACTION_CREATE_DOCUMENT);
         intent.setType(FILE_TYPE);
-        if (!isSave){
+        if (!isSave) {
             getSelectedFileActivityResult.launch(intent);
-        }else {
+        } else {
             intent.addCategory(Intent.CATEGORY_OPENABLE);
             intent.putExtra(Intent.EXTRA_TITLE, "strings.xml");
             getSaveFileActivityResult.launch(intent);
@@ -108,12 +115,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
 
-
-    private static String replacementSkippedChars(String content, boolean isParsing){
-            //locationSkippedChar = findString(content, skippedChar);
-            for (int i = 0; i < skippedChar.length; i++) {
-                content = content.replace(!isParsing ? skippedChar[i] : REPLACEMENT_CHARACTER + i, !isParsing ? REPLACEMENT_CHARACTER + i : skippedChar[i]);
-            }
+    private static String replacementSkippedChars(String content, boolean isParsing) {
+        //locationSkippedChar = findString(content, skippedChar);
+        for (int i = 0; i < skippedChar.length; i++) {
+            content = content.replace(!isParsing ? skippedChar[i] : REPLACEMENT_CHARACTER + i, !isParsing ? REPLACEMENT_CHARACTER + i : skippedChar[i]);
+        }
         return content;
     }
 
@@ -138,16 +144,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     */
 
 
-
     private void saveXmlTranslate(Uri UriSave) {
-        content = new StringBuilder(edtTo.getText().toString());
-        content = new StringBuilder(replacementSkippedChars(content.toString(), true));
+        content = edtTo.getText().toString();
+        content = replacementSkippedChars(content.toString(), true);
         String[] arrNameAttribute = nameAttribute.toString().split("\n");
         String[] arrContent = content.toString().split("\n");
         createdTranslateXml(arrNameAttribute, arrContent, UriSave);
     }
-
-
 
 
     private void parserXml(Uri selectedFile) {
@@ -161,35 +164,48 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 doc.getDocumentElement().normalize();
                 NodeList nList = doc.getElementsByTagName("string");
 
-                nameAttribute = new StringBuilder("");
-                content = new StringBuilder("");
+                String nameAttribute = "";
+                String content = "";
                 for (int i = 0; i < nList.getLength(); i++) {
                     Node nNode = nList.item(i);
                     // חיפוש והוספת הערך של ה-attribut name למערך
                     if (nNode.getNodeType() == Node.ELEMENT_NODE) {
                         Element element = (Element) nNode;
-                        nameAttribute.append(element.getAttribute("name")).append("\n");
+                        nameAttribute += element.getAttribute("name") + "\n";
                     }
 
-                    content.append(nNode.getTextContent().trim()).append("\n");
+                    content += nNode.getTextContent().trim() + "\n";
+
+                    int progress = (i * 100) / nList.getLength(); // חישוב התקדמות
+                    runOnUiThread(() -> {
+                        progressBar.setProgress(progress);
+                        progressBar.setRotation(360 * ((float) progress / 100 + 50));
+
+                    });
                 }
 
                 if (skippedChar != null && !skippedChar[0].isEmpty()) {
-                    content = new StringBuilder(replacementSkippedChars(content.toString(), false));
+                    content = replacementSkippedChars(content, false);
                 }
 
+                String finalContent = content;
+                String finalNameAttribute = nameAttribute;
+                String strBody = null;
+                if (BuildConfig.DEBUG) {
+                    String[] arrName = finalNameAttribute.split("\n");
+                    String[] arrContent = finalContent.split("\n");
+
+                    for (int i = 0; i < arrName.length; i++) {
+                        strBody += "name = " + arrName[i] + "  value = " + arrContent[i] + "\n";
+                    }
+                }
+                String finalStrBody = strBody;
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        edtFrom.setText(content);
-                        if(BuildConfig.DEBUG) {
-                            String[] arrName = nameAttribute.toString().split("\n");
-                            String[] arrContent = content.toString().split("\n");
-                            for (int i = 0; i < arrName.length; i++) {
-                                String strBody = "name = " + arrName[i] + "  value = " + arrContent[i];
-                                edtTo.setText(edtTo.getText() + strBody + "\n");
-                            }
-                        }
+                        edtFrom.setText(finalContent);
+                        if (BuildConfig.DEBUG)
+                        edtTo.setText(finalStrBody);
                     }
                 });
             } catch (Exception e) {
@@ -199,6 +215,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }).start();
     }
+
 
     private void createdTranslateXml(String[] arrNameAttribute, String[] arrContent, Uri uriSave) {
         try {
@@ -220,6 +237,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 element.setAttribute("name", arrNameAttribute[i]);
                 element.appendChild(doc.createTextNode(arrContent[i]));
                 rootElement.appendChild(element);
+                int progress = (i * 100) / arrNameAttribute.length; // חישוב התקדמות
+                progressBar.setProgress(progress);
+                progressBar.setRotation(360 * ((float) progress / 100 + 50));
             }
 
             // כתיבת התוכן לקובץ ושמירתו באחסון החיצוני של האפליקציה
