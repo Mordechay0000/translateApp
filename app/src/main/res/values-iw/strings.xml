@@ -6,4 +6,5 @@
     <string name="no_selected_file_or_directory">לא נבחר קובץ או תיקייה</string>
     <string name="file_parser">מנתח קובץ</string>
     <string name="error_parsing_file">שגיאה בניתוח קובץ</string>
+    <string name="save_successful">נשמר בהצלחה</string>
 </resources>

@@ -13,6 +13,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import org.w3c.dom.Document;
@@ -25,6 +26,7 @@ import java.io.OutputStream;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
@@ -34,8 +36,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private static final String FILE_TYPE = "text/xml";
     private static final String REPLACEMENT_CHARACTER = "@@@";
-    private EditText edtFrom;
-    private EditText edtTo;
+    private TextView edtFrom;
+    private TextView edtTo;
     private ActivityResultLauncher<Intent> getSelectedFileActivityResult;
     private ActivityResultLauncher<Intent> getSaveFileActivityResult;
     private static final String[] skippedChar = new String[]{"@", "*", "$"};
@@ -111,7 +113,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             intent.putExtra(Intent.EXTRA_TITLE, "strings.xml");
             getSaveFileActivityResult.launch(intent);
         }
-
     }
 
 
@@ -146,8 +147,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void saveXmlTranslate(Uri UriSave) {
         content = edtTo.getText().toString();
-        content = replacementSkippedChars(content.toString(), true);
-        String[] arrNameAttribute = nameAttribute.toString().split("\n");
+        content = replacementSkippedChars(content, true);
+        String[] arrNameAttribute = nameAttribute.split("\n");
         String[] arrContent = content.toString().split("\n");
         createdTranslateXml(arrNameAttribute, arrContent, UriSave);
     }
@@ -164,8 +165,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 doc.getDocumentElement().normalize();
                 NodeList nList = doc.getElementsByTagName("string");
 
-                String nameAttribute = "";
-                String content = "";
+                nameAttribute = "";
+                content = "";
                 for (int i = 0; i < nList.getLength(); i++) {
                     Node nNode = nList.item(i);
                     // חיפוש והוספת הערך של ה-attribut name למערך
@@ -179,8 +180,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     int progress = (i * 100) / nList.getLength(); // חישוב התקדמות
                     runOnUiThread(() -> {
                         progressBar.setProgress(progress);
-                        progressBar.setRotation(360 * ((float) progress / 100 + 50));
-
                     });
                 }
 
@@ -188,24 +187,26 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     content = replacementSkippedChars(content, false);
                 }
 
-                String finalContent = content;
                 String finalNameAttribute = nameAttribute;
                 String strBody = null;
                 if (BuildConfig.DEBUG) {
                     String[] arrName = finalNameAttribute.split("\n");
-                    String[] arrContent = finalContent.split("\n");
+                    String[] arrContent = content.split("\n");
 
                     for (int i = 0; i < arrName.length; i++) {
                         strBody += "name = " + arrName[i] + "  value = " + arrContent[i] + "\n";
+                        int progress = (i * 100) / nList.getLength(); // חישוב התקדמות
+                        runOnUiThread(() -> progressBar.setProgress(progress));
                     }
                 }
-                String finalStrBody = strBody;
+                String finalContent = content;
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         edtFrom.setText(finalContent);
-                        if (BuildConfig.DEBUG)
-                        edtTo.setText(finalStrBody);
+                        if (BuildConfig.DEBUG) {
+                            edtTo.setText(finalContent);
+                        }
                     }
                 });
             } catch (Exception e) {
@@ -239,15 +240,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 rootElement.appendChild(element);
                 int progress = (i * 100) / arrNameAttribute.length; // חישוב התקדמות
                 progressBar.setProgress(progress);
-                progressBar.setRotation(360 * ((float) progress / 100 + 50));
             }
 
             // כתיבת התוכן לקובץ ושמירתו באחסון החיצוני של האפליקציה
             TransformerFactory transformerFactory = TransformerFactory.newInstance();
             Transformer transformer = transformerFactory.newTransformer();
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+            transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
             DOMSource source = new DOMSource(doc);
             StreamResult result = new StreamResult(outputStream);
             transformer.transform(source, result);
+            edtFrom.setText(R.string.save_successful);
             Log.d("SaveToXml", "File saved successfully: " + uriSave.getPath());
         } catch (Exception e) {
             e.printStackTrace();

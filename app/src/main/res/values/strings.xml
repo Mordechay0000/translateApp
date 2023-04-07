@@ -6,4 +6,5 @@
     <string name="file_parser">file parser</string>
     <string name="error_parsing_file">Error parsing file</string>
     <string name="credit_for_the_icon" translatable="false"><a target="_blank" href="https://icons8.com/icon/vvMrJV0Jd9UP/translate-app">Translate App</a> icon by <a target="_blank" href="https://icons8.com">Icons8</a></string>
+    <string name="save_successful">save successful</string>
 </resources>
