@@ -36,6 +36,7 @@
                     android:layout_height="wrap_content"
                     android:autofillHints=""
                     android:gravity="start|top"
+                    android:textIsSelectable="true"
                     android:inputType="textMultiLine" />
             </ScrollView>
 
@@ -51,7 +52,7 @@
                 android:layout_height="300dp"
                 android:layout_margin="20dp">
 
-                <TextView
+                <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/edt_to"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
