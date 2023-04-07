@@ -13,4 +13,4 @@
 This code is licensed under the GNU GPL v3.
 In short, do not use the code for commercial purposes.
 any code that will be developed on the basis of this code must be open source and it must not be used for commercial purposes.
-Must leave the copyright (credit) as it is!!
+Must leave the copyright (credit) **as it is**!!
