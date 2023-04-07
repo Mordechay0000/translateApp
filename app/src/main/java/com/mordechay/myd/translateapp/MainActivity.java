@@ -164,21 +164,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 nameAttribute = new StringBuilder("");
                 content = new StringBuilder("");
                 for (int i = 0; i < nList.getLength(); i++) {
-                    int finalI = i;
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            edtFrom.setText(finalI + " מתוך " + nList.getLength());
-                        }
-                    });
                     Node nNode = nList.item(i);
                     // חיפוש והוספת הערך של ה-attribut name למערך
                     if (nNode.getNodeType() == Node.ELEMENT_NODE) {
                         Element element = (Element) nNode;
-                        nameAttribute.append(element.getAttribute("name")).append("\n").toString();
+                        nameAttribute.append(element.getAttribute("name")).append("\n");
                     }
 
-                    content.append(nNode.getTextContent().trim()).append("\n").toString();
+                    content.append(nNode.getTextContent().trim()).append("\n");
                 }
 
                 if (skippedChar != null && !skippedChar[0].isEmpty()) {
