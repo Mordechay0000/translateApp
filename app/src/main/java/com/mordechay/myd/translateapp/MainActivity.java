@@ -5,12 +5,13 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.Activity;
-import android.app.Notification;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.PrecomputedText;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -23,6 +24,9 @@ import org.w3c.dom.NodeList;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -36,14 +40,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private static final String FILE_TYPE = "text/xml";
     private static final String REPLACEMENT_CHARACTER = "@@@";
+    private Button btnSaveTranslate;
     private TextView edtFrom;
-    private TextView edtTo;
-    private ActivityResultLauncher<Intent> getSelectedFileActivityResult;
-    private ActivityResultLauncher<Intent> getSaveFileActivityResult;
-    private static final String[] skippedChar = new String[]{"@", "*", "$"};
+    private EditText edtTo;
+    private ActivityResultLauncher<Intent> fileActivityResult;
+    private static ArrayList<String> skippedChar;
     private String nameAttribute;
     private String content;
     private ProgressBar progressBar;
+    private boolean isSave;
     //private static int[] locationSkippedChar;
 
     @Override
@@ -51,30 +56,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        getSelectedFileActivityResult = registerForActivityResult(
+        fileActivityResult = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == Activity.RESULT_OK) {
                         // There are no request codes
                         Uri fileUri;
                         if (result.getData() != null) {
-                            fileUri = result.getData().getData();
-                            parserXml(fileUri);
-                        } else {
-                            Toast.makeText(this, getText(R.string.no_selected_file_or_directory), Toast.LENGTH_SHORT).show();
-                        }
-
-                    }
-                });
-        getSaveFileActivityResult = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if (result.getResultCode() == Activity.RESULT_OK) {
-                        // There are no request codes
-                        Uri fileUri;
-                        if (result.getData() != null) {
-                            fileUri = result.getData().getData();
-                            saveXmlTranslate(fileUri);
+                            if (!isSave) {
+                                fileUri = result.getData().getData();
+                                parserXml(fileUri);
+                            }else {
+                                fileUri = result.getData().getData();
+                                saveXmlTranslate(fileUri);
+                            }
                         } else {
                             Toast.makeText(this, getText(R.string.no_selected_file_or_directory), Toast.LENGTH_SHORT).show();
                         }
@@ -82,20 +77,25 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     }
                 });
 
+        skippedChar = new ArrayList<>(getSharedPreferences("save_data", 0).getStringSet("skipped_chars", new HashSet<>(Arrays.asList("%s", "%1$s", "%2$s", "%3$s", "%4$s", "%5$s", "%6$s", "%7$s", "%8$s", "%9$s", "%d", "%1$d", "%2$d", "%3$d", "%4$d", "%5$d", "%6$d", "%7$d", "%8$d", "%9$d"))));
         progressBar = findViewById(R.id.progress_bar);
         progressBar.setMax(100);
         progressBar.setProgress(0);
         progressBar.setVisibility(View.VISIBLE);
         edtFrom = findViewById(R.id.edt_from);
         edtTo = findViewById(R.id.edt_to);
+        findViewById(R.id.btn_manger_skipped_chars).setOnClickListener(this);
         findViewById(R.id.btn_select_file).setOnClickListener(this);
-        findViewById(R.id.btn_translate).setOnClickListener(this);
+        btnSaveTranslate = findViewById(R.id.btn_translate);
+        btnSaveTranslate.setOnClickListener(this);
     }
 
     @Override
     public void onClick(View view) {
         int id = view.getId();
-        if (id == R.id.btn_select_file) {
+        if (id ==R.id.btn_manger_skipped_chars) {
+
+        } else if (id == R.id.btn_select_file) {
             pickFile(false);
         } else if (id == R.id.btn_translate) {
             pickFile(true);
@@ -104,22 +104,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     public void pickFile(boolean isSave) {
+        this.isSave = isSave;
         Intent intent = new Intent(!isSave ? Intent.ACTION_GET_CONTENT : Intent.ACTION_CREATE_DOCUMENT);
         intent.setType(FILE_TYPE);
         if (!isSave) {
-            getSelectedFileActivityResult.launch(intent);
+            fileActivityResult.launch(intent);
         } else {
             intent.addCategory(Intent.CATEGORY_OPENABLE);
             intent.putExtra(Intent.EXTRA_TITLE, "strings.xml");
-            getSaveFileActivityResult.launch(intent);
+            fileActivityResult.launch(intent);
         }
     }
 
 
     private static String replacementSkippedChars(String content, boolean isParsing) {
         //locationSkippedChar = findString(content, skippedChar);
-        for (int i = 0; i < skippedChar.length; i++) {
-            content = content.replace(!isParsing ? skippedChar[i] : REPLACEMENT_CHARACTER + i, !isParsing ? REPLACEMENT_CHARACTER + i : skippedChar[i]);
+        for (int i = 0; i < skippedChar.size(); i++) {
+            content = content.replace(!isParsing ? skippedChar.get(i) : REPLACEMENT_CHARACTER + i, !isParsing ? REPLACEMENT_CHARACTER + i : skippedChar.get(i));
         }
         return content;
     }
@@ -183,7 +184,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     });
                 }
 
-                if (skippedChar != null && !skippedChar[0].isEmpty()) {
+                if (skippedChar != null && !skippedChar.get(0).isEmpty()) {
                     content = replacementSkippedChars(content, false);
                 }
 
@@ -204,6 +205,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     @Override
                     public void run() {
                         edtFrom.setText(finalContent);
+                        btnSaveTranslate.setEnabled(true);
+                        edtTo.setEnabled(true);
                         if (BuildConfig.DEBUG) {
                             edtTo.setText(finalContent);
                         }
