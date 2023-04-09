@@ -7,4 +7,21 @@
     <string name="error_parsing_file">Error parsing file</string>
     <string name="credit_for_the_icon" translatable="false"><a target="_blank" href="https://icons8.com/icon/vvMrJV0Jd9UP/translate-app">Translate App</a> icon by <a target="_blank" href="https://icons8.com">Icons8</a></string>
     <string name="save_successful">save successful</string>
+    <string name="management_skip_characters">Management skip characters</string>
+    <string name="ok">ok</string>
+    <string name="about_the_developer">About the developer</string>
+    <string name="credit_for_developer" translatable="false">The application was created by mordechay</string>
+    <string name="Details_about_the_developer" formatted="false">
+    <![CDATA[
+        <p>Details about the developer:</p>
+        <p>Email: <a href="mailto:office@y-fox.com">office@y-fox.com</a></p>
+        <p>github: <a href="https://github.com/Mordechay0000">https://github.com/Mordechay0000</a></p>
+        <p>For source code:</p>
+        <p><a href="https://github.com/Mordechay0000/translateApp">https://github.com/Mordechay0000/translateApp</a></p>
+        <p>Support the development and ongoing activity of the application by contributing to the developer:</p>
+        <p><a href="https://www.paypal.com/paypalme/myd0000">https://www.paypal.com/paypalme/myd0000</a></p>
+    ]]>
+</string>
+    <string name="save">save</string>
+
 </resources>

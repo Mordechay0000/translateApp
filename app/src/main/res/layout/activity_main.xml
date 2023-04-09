@@ -4,74 +4,80 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:gravity="center"
     android:orientation="vertical"
     tools:context=".MainActivity">
 
-            <ScrollView
-                android:layout_width="match_parent"
-                android:layout_height="100dp"
-                android:layout_margin="20dp">
-
-                <TextView
-                    android:id="@+id/edt_from"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:autofillHints=""
-                    android:gravity="start|top"
-                    android:textIsSelectable="true"
-                    android:inputType="textMultiLine" />
-            </ScrollView>
-
-            <ProgressBar
-                android:id="@+id/progress_bar"
-                style="?android:attr/progressBarStyleHorizontal"
-                android:layout_width="match_parent"
-                android:layout_height="40dp"
-                android:layout_gravity="center" />
-
-    <ScrollView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="20dp">
+        android:layout_gravity="top"
+        android:gravity="center"
+        android:orientation="vertical">
 
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/edt_to"
+        <ProgressBar
+            android:id="@+id/progress_bar"
+            style="@android:style/Widget.ProgressBar.Horizontal"
             android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_gravity="center_horizontal|fill_vertical"
+            android:layout_marginHorizontal="5dp"
+            android:layout_marginTop="5dp" />
+
+        <Button
+            android:id="@+id/btn_manger_skipped_chars"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:autofillHints=""
-            android:enabled="false"
-            android:gravity="start|top"
-            android:inputType="textMultiLine|textNoSuggestions" />
-    </ScrollView>
+            android:text="@string/management_skip_characters" />
+    </LinearLayout>
 
-    <Button
-        android:id="@+id/btn_manger_skipped_chars"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="ניהול תווים" />
+        android:layout_gravity="center"
+        android:layout_weight="1"
+        android:orientation="vertical">
 
-            <LinearLayout
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="top"
+            android:layout_margin="20dp">
+
+            <TextView
+                android:id="@+id/edt"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center"
-                android:orientation="horizontal">
+                android:autofillHints=""
+                android:background="@color/grey_background"
+                android:gravity="start|top"
+                android:inputType="textMultiLine"
+                android:textIsSelectable="true" />
+        </ScrollView>
 
-                <Button
-                    android:id="@+id/btn_select_file"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_margin="20dp"
-                    android:text="@string/select_xml_file" />
+    </LinearLayout>
 
-                <Button
-                    android:id="@+id/btn_translate"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_margin="20dp"
-                    android:enabled="false"
-                    android:text="@string/save_translate" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:gravity="center"
+        android:orientation="horizontal">
 
-            </LinearLayout>
+        <Button
+            android:id="@+id/btn_select_file"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="20dp"
+            android:text="@string/select_xml_file" />
+
+        <Button
+            android:id="@+id/btn_translate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="20dp"
+            android:enabled="false"
+            android:text="@string/save_translate" />
+
+    </LinearLayout>
 
 </LinearLayout>

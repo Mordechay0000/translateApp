@@ -5,10 +5,12 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.net.Uri;
 import android.os.Bundle;
-import android.text.PrecomputedText;
+import android.text.Html;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -40,15 +42,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private static final String FILE_TYPE = "text/xml";
     private static final String REPLACEMENT_CHARACTER = "@@@";
+    private static final String DEFAULT_SHRED_PREFERENCES = "save_data";
+    private static final String SKIPPED_CHARS_KEY = "skipped_chars";
+    private ColorStateList successColor;
     private Button btnSaveTranslate;
-    private TextView edtFrom;
-    private EditText edtTo;
+    private TextView edt;
     private ActivityResultLauncher<Intent> fileActivityResult;
     private static ArrayList<String> skippedChar;
     private String nameAttribute;
     private String content;
     private ProgressBar progressBar;
+    private ColorStateList clrDefault;
     private boolean isSave;
+    private AlertDialog dialog;
     //private static int[] locationSkippedChar;
 
     @Override
@@ -77,30 +83,80 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     }
                 });
 
-        skippedChar = new ArrayList<>(getSharedPreferences("save_data", 0).getStringSet("skipped_chars", new HashSet<>(Arrays.asList("%s", "%1$s", "%2$s", "%3$s", "%4$s", "%5$s", "%6$s", "%7$s", "%8$s", "%9$s", "%d", "%1$d", "%2$d", "%3$d", "%4$d", "%5$d", "%6$d", "%7$d", "%8$d", "%9$d"))));
+        startCreditDialog();
+        skippedChar = new ArrayList<>(getSharedPreferences(DEFAULT_SHRED_PREFERENCES, 0).getStringSet(SKIPPED_CHARS_KEY, new HashSet<>(Arrays.asList("%s", "%1$s", "%2$s", "%3$s", "%4$s", "%5$s", "%6$s", "%7$s", "%8$s", "%9$s", "%d", "%1$d", "%2$d", "%3$d", "%4$d", "%5$d", "%6$d", "%7$d", "%8$d", "%9$d"))));
         progressBar = findViewById(R.id.progress_bar);
         progressBar.setMax(100);
         progressBar.setProgress(0);
         progressBar.setVisibility(View.VISIBLE);
-        edtFrom = findViewById(R.id.edt_from);
-        edtTo = findViewById(R.id.edt_to);
+        clrDefault = progressBar.getProgressTintList();
+        successColor = ColorStateList.valueOf(getColor(R.color.success));
+        edt = findViewById(R.id.edt);
         findViewById(R.id.btn_manger_skipped_chars).setOnClickListener(this);
         findViewById(R.id.btn_select_file).setOnClickListener(this);
         btnSaveTranslate = findViewById(R.id.btn_translate);
         btnSaveTranslate.setOnClickListener(this);
     }
 
+    private void startCreditDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setView(R.layout.credit_dialog);
+        builder.setCancelable(false);
+        dialog = builder.create();
+        dialog.show();
+        TextView txt = dialog.findViewById(R.id.show_html);
+        txt.setText(Html.fromHtml(getText(R.string.Details_about_the_developer).toString(), Html.FROM_HTML_MODE_LEGACY));
+        dialog.findViewById(R.id.btn_credit_ok).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialog.dismiss();
+            }
+        });
+    }
+
     @Override
     public void onClick(View view) {
         int id = view.getId();
         if (id ==R.id.btn_manger_skipped_chars) {
-
+            openMangerSkippedDialog();
         } else if (id == R.id.btn_select_file) {
             pickFile(false);
         } else if (id == R.id.btn_translate) {
             pickFile(true);
         }
 
+    }
+
+    private void openMangerSkippedDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setView(R.layout.manger_skipped_chars);
+        builder.setCancelable(true);
+        AlertDialog dialogSkipped = builder.create();
+        new Thread(() -> {
+            StringBuilder strText = new StringBuilder();
+            for (int i = 0; i < skippedChar.size() - 1; i++){
+                strText.append(skippedChar.get(i)).append(",");
+            }
+            /**
+             * So that the last one does not add an unnecessary comma
+             */
+            {
+                strText.append(skippedChar.get(skippedChar.size() - 1));
+            }
+
+            runOnUiThread(() -> {
+                dialogSkipped.show();
+                EditText edtSkippedChars = dialogSkipped.findViewById(R.id.edt_skipped_chars);
+                edtSkippedChars.setText(strText);
+                dialogSkipped.findViewById(R.id.btn_save_skipped_chars).setOnClickListener(v ->
+                        {
+                            getSharedPreferences(DEFAULT_SHRED_PREFERENCES, 0).edit().putStringSet(SKIPPED_CHARS_KEY, new HashSet<>(Arrays.asList(edtSkippedChars.getText().toString().trim().split(",")))).apply();
+                            skippedChar = new ArrayList<>(getSharedPreferences(DEFAULT_SHRED_PREFERENCES, 0).getStringSet(SKIPPED_CHARS_KEY, new HashSet<>(Arrays.asList("%s", "%1$s", "%2$s", "%3$s", "%4$s", "%5$s", "%6$s", "%7$s", "%8$s", "%9$s", "%d", "%1$d", "%2$d", "%3$d", "%4$d", "%5$d", "%6$d", "%7$d", "%8$d", "%9$d"))));
+                            dialogSkipped.dismiss();
+                        }
+                );
+            });
+        }).start();
     }
 
     public void pickFile(boolean isSave) {
@@ -147,7 +203,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
     private void saveXmlTranslate(Uri UriSave) {
-        content = edtTo.getText().toString();
+        content = edt.getText().toString();
         content = replacementSkippedChars(content, true);
         String[] arrNameAttribute = nameAttribute.split("\n");
         String[] arrContent = content.toString().split("\n");
@@ -156,7 +212,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
     private void parserXml(Uri selectedFile) {
-        edtFrom.setText(R.string.file_parser);
+        edt.setText(R.string.file_parser);
+        progressBar.setProgress(0);
+        progressBar.setProgressTintList(clrDefault);
         new Thread(() -> {
             try {
                 InputStream inputStream = getContentResolver().openInputStream(selectedFile);
@@ -168,7 +226,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 nameAttribute = "";
                 content = "";
-                for (int i = 0; i < nList.getLength(); i++) {
+                int nListLength = nList.getLength();
+                for (int i = 0; i < nListLength - 1; i++) {
                     Node nNode = nList.item(i);
                     // חיפוש והוספת הערך של ה-attribut name למערך
                     if (nNode.getNodeType() == Node.ELEMENT_NODE) {
@@ -178,39 +237,37 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                     content += nNode.getTextContent().trim() + "\n";
 
-                    int progress = (i * 100) / nList.getLength(); // חישוב התקדמות
-                    runOnUiThread(() -> {
-                        progressBar.setProgress(progress);
-                    });
+                    int progress = (i * 100) / nListLength; // חישוב התקדמות
+                    runOnUiThread(() -> progressBar.setProgress(progress));
+                }
+
+
+                /**
+                 *So that the last one won't add an unnecessary line drop
+                 */
+                {
+                    Node nNode = nList.item(nListLength - 1);
+                    // חיפוש והוספת הערך של ה-attribut name למערך
+                    if (nNode.getNodeType() == Node.ELEMENT_NODE) {
+                        Element element = (Element) nNode;
+                        nameAttribute += element.getAttribute("name");
+                    }
+
+                    content += nNode.getTextContent().trim();
+
+                    runOnUiThread(() -> progressBar.setProgress(99));
                 }
 
                 if (skippedChar != null && !skippedChar.get(0).isEmpty()) {
                     content = replacementSkippedChars(content, false);
                 }
 
-                String finalNameAttribute = nameAttribute;
-                String strBody = null;
-                if (BuildConfig.DEBUG) {
-                    String[] arrName = finalNameAttribute.split("\n");
-                    String[] arrContent = content.split("\n");
-
-                    for (int i = 0; i < arrName.length; i++) {
-                        strBody += "name = " + arrName[i] + "  value = " + arrContent[i] + "\n";
-                        int progress = (i * 100) / nList.getLength(); // חישוב התקדמות
-                        runOnUiThread(() -> progressBar.setProgress(progress));
-                    }
-                }
-                String finalContent = content;
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        edtFrom.setText(finalContent);
-                        btnSaveTranslate.setEnabled(true);
-                        edtTo.setEnabled(true);
-                        if (BuildConfig.DEBUG) {
-                            edtTo.setText(finalContent);
-                        }
-                    }
+                runOnUiThread(() -> {
+                    edt.setText(content);
+                    edt.setEnabled(true);
+                    btnSaveTranslate.setEnabled(true);
+                    progressBar.setProgress(100);
+                    progressBar.setProgressTintList(successColor);
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> Toast.makeText(MainActivity.this, getText(R.string.error_parsing_file), Toast.LENGTH_SHORT).show()
@@ -222,6 +279,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
     private void createdTranslateXml(String[] arrNameAttribute, String[] arrContent, Uri uriSave) {
+        progressBar.setProgressTintList(clrDefault);
         try {
             // יצירת  output stream לקובץ
             OutputStream outputStream = getContentResolver().openOutputStream(uriSave);
@@ -253,10 +311,28 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             DOMSource source = new DOMSource(doc);
             StreamResult result = new StreamResult(outputStream);
             transformer.transform(source, result);
-            edtFrom.setText(R.string.save_successful);
+            progressBar.setProgress(100);
+            progressBar.setProgressTintList(successColor);
+            btnSaveTranslate.setEnabled(false);
+            edt.setEnabled(false);
+            edt.setText(R.string.save_successful);
             Log.d("SaveToXml", "File saved successfully: " + uriSave.getPath());
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        dialog.show();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (dialog != null) {
+            dialog.dismiss();
         }
     }
 }
