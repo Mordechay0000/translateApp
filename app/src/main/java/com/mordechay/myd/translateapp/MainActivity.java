@@ -54,6 +54,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private ProgressBar progressBar;
     private ColorStateList clrDefault;
     private boolean isSave;
+    private boolean isDialog = true;
     private AlertDialog dialog;
     //private static int[] locationSkippedChar;
 
@@ -65,6 +66,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         fileActivityResult = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
+                    isDialog = true;
                     if (result.getResultCode() == Activity.RESULT_OK) {
                         // There are no request codes
                         Uri fileUri;
@@ -161,6 +163,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     public void pickFile(boolean isSave) {
         this.isSave = isSave;
+        isDialog = false;
         Intent intent = new Intent(!isSave ? Intent.ACTION_GET_CONTENT : Intent.ACTION_CREATE_DOCUMENT);
         intent.setType(FILE_TYPE);
         if (!isSave) {
@@ -325,6 +328,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onRestart() {
         super.onRestart();
+        if (isDialog)
         dialog.show();
     }
 
