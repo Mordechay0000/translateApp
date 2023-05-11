@@ -31,4 +31,7 @@
     ]]>
 </string>
     <string name="save">שמור</string>
+    <string name="error_auto_translate">שגיאה התקגום אוטומטי, נסה תרגום ידני.</string>
+    <string name="error_download_auto_translate_model">שגיאה בהורדת מודל תרגום אוטומטי</string>
+    <string name="file_translator">מתרגם קובץ, פעולה זו עשויה להימשך זמן מה, אנא המתן.</string>
 </resources>

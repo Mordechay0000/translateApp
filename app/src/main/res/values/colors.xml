@@ -3,10 +3,11 @@
     <color name="purple_200">#86E4FC</color>
     <color name="purple_500">#00B6EE</color>
     <color name="purple_700">#005FB3</color>
-    <color name="teal_200">#DA0347</color>
+    <color name="teal_200">#3CDA03</color>
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="grey_background">#74CCCCCC</color>
-    <color name="success">#1ABA2A</color>
+    <color name="progress_red">#FA0C0C</color>
+    <color name="progress_success">#1ABA2A</color>
 </resources>

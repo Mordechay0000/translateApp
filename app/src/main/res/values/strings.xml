@@ -23,5 +23,8 @@
     ]]>
 </string>
     <string name="save">save</string>
+    <string name="error_auto_translate">Error in automatic translation, try manual translation.</string>
+    <string name="error_download_auto_translate_model">Error downloading automatic translation model</string>
+    <string name="file_translator">Translating a file, this operation may take some time, please wait.</string>
 
 </resources>

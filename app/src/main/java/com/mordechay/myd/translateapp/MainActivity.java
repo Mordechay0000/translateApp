@@ -2,6 +2,8 @@ package com.mordechay.myd.translateapp;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.Activity;
@@ -14,10 +16,19 @@ import android.text.Html;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.mlkit.common.model.DownloadConditions;
+import com.google.mlkit.nl.translate.TranslateLanguage;
+import com.google.mlkit.nl.translate.Translation;
+import com.google.mlkit.nl.translate.Translator;
+import com.google.mlkit.nl.translate.TranslatorOptions;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -44,46 +55,53 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private static final String REPLACEMENT_CHARACTER = "@@@";
     private static final String DEFAULT_SHRED_PREFERENCES = "save_data";
     private static final String SKIPPED_CHARS_KEY = "skipped_chars";
-    private ColorStateList successColor;
+
+    private CheckBox chbAutoTranslate;
     private Button btnSaveTranslate;
     private TextView edt;
     private ActivityResultLauncher<Intent> fileActivityResult;
     private static ArrayList<String> skippedChar;
-    private String nameAttribute;
-    private String content;
+    private String[] arrNameAttribute;
     private ProgressBar progressBar;
     private ColorStateList clrDefault;
     private boolean isSave;
     private boolean isDialog = true;
     private AlertDialog dialog;
+    // Create an English-hebrew translator:
+    private final TranslatorOptions options = new TranslatorOptions.Builder().setSourceLanguage(TranslateLanguage.ENGLISH).setTargetLanguage(TranslateLanguage.HEBREW).build();
+    private final Translator englishHebrewTranslator = Translation.getClient(options);
     //private static int[] locationSkippedChar;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        fileActivityResult = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    isDialog = true;
-                    if (result.getResultCode() == Activity.RESULT_OK) {
-                        // There are no request codes
-                        Uri fileUri;
-                        if (result.getData() != null) {
-                            if (!isSave) {
-                                fileUri = result.getData().getData();
-                                parserXml(fileUri);
-                            }else {
-                                fileUri = result.getData().getData();
-                                saveXmlTranslate(fileUri);
+        {
+            fileActivityResult = registerForActivityResult(
+                    new ActivityResultContracts.StartActivityForResult(),
+                    result -> {
+                        isDialog = true;
+                        if (result.getResultCode() == Activity.RESULT_OK) {
+                            // There are no request codes
+                            Uri fileUri;
+                            if (result.getData() != null) {
+                                if (!isSave) {
+                                    fileUri = result.getData().getData();
+                                    onCompletePickFile(fileUri);
+                                } else {
+                                    fileUri = result.getData().getData();
+                                    saveFile(fileUri);
+                                }
+                            } else {
+                                Toast.makeText(this, getText(R.string.no_selected_file_or_directory), Toast.LENGTH_SHORT).show();
                             }
-                        } else {
-                            Toast.makeText(this, getText(R.string.no_selected_file_or_directory), Toast.LENGTH_SHORT).show();
-                        }
 
-                    }
-                });
+                        }
+                    });
+        }
 
         startCreditDialog();
         skippedChar = new ArrayList<>(getSharedPreferences(DEFAULT_SHRED_PREFERENCES, 0).getStringSet(SKIPPED_CHARS_KEY, new HashSet<>(Arrays.asList("%s", "%1$s", "%2$s", "%3$s", "%4$s", "%5$s", "%6$s", "%7$s", "%8$s", "%9$s", "%d", "%1$d", "%2$d", "%3$d", "%4$d", "%5$d", "%6$d", "%7$d", "%8$d", "%9$d"))));
@@ -92,34 +110,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         progressBar.setProgress(0);
         progressBar.setVisibility(View.VISIBLE);
         clrDefault = progressBar.getProgressTintList();
-        successColor = ColorStateList.valueOf(getColor(R.color.success));
         edt = findViewById(R.id.edt);
         findViewById(R.id.btn_manger_skipped_chars).setOnClickListener(this);
+        chbAutoTranslate = findViewById(R.id.chb_auto_translate);
         findViewById(R.id.btn_select_file).setOnClickListener(this);
         btnSaveTranslate = findViewById(R.id.btn_translate);
         btnSaveTranslate.setOnClickListener(this);
     }
 
-    private void startCreditDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setView(R.layout.credit_dialog);
-        builder.setCancelable(false);
-        dialog = builder.create();
-        dialog.show();
-        TextView txt = dialog.findViewById(R.id.show_html);
-        txt.setText(Html.fromHtml(getText(R.string.Details_about_the_developer).toString(), Html.FROM_HTML_MODE_LEGACY));
-        dialog.findViewById(R.id.btn_credit_ok).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                dialog.dismiss();
-            }
-        });
-    }
 
     @Override
     public void onClick(View view) {
         int id = view.getId();
-        if (id ==R.id.btn_manger_skipped_chars) {
+        if (id == R.id.btn_manger_skipped_chars) {
             openMangerSkippedDialog();
         } else if (id == R.id.btn_select_file) {
             pickFile(false);
@@ -136,11 +139,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         AlertDialog dialogSkipped = builder.create();
         new Thread(() -> {
             StringBuilder strText = new StringBuilder();
-            for (int i = 0; i < skippedChar.size() - 1; i++){
+            for (int i = 0; i < skippedChar.size() - 1; i++) {
                 strText.append(skippedChar.get(i)).append(",");
             }
-            /**
-             * So that the last one does not add an unnecessary comma
+            /*
+              So that the last one does not add an unnecessary comma
              */
             {
                 strText.append(skippedChar.get(skippedChar.size() - 1));
@@ -161,7 +164,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }).start();
     }
 
-    public void pickFile(boolean isSave) {
+    private void pickFile(boolean isSave) {
         this.isSave = isSave;
         isDialog = false;
         Intent intent = new Intent(!isSave ? Intent.ACTION_GET_CONTENT : Intent.ACTION_CREATE_DOCUMENT);
@@ -175,13 +178,36 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-
-    private static String replacementSkippedChars(String content, boolean isParsing) {
-        //locationSkippedChar = findString(content, skippedChar);
-        for (int i = 0; i < skippedChar.size(); i++) {
-            content = content.replace(!isParsing ? skippedChar.get(i) : REPLACEMENT_CHARACTER + i, !isParsing ? REPLACEMENT_CHARACTER + i : skippedChar.get(i));
+    private void onCompletePickFile(Uri fileUri) {
+        edt.setText(R.string.file_parser);
+        progressBar.setProgress(0);
+        progressBar.setProgressTintList(clrDefault);
+        boolean isAutoTranslate = chbAutoTranslate.isChecked();
+        String content = parserXml(fileUri);
+        if(content != null) {
+            if (isAutoTranslate){
+                edt.setText(R.string.file_translator);
+                progressBar.setProgress(100);
+                ColorStateList clrRed = ColorStateList.valueOf(getColor(R.color.progress_red));
+                progressBar.setProgress(0);
+                progressBar.setProgressTintList(clrRed);
+                autoTranslate(content);
+            }else {
+                edt.setText(content);
+                edt.setEnabled(true);
+                btnSaveTranslate.setEnabled(true);
+                progressBar.setProgressTintList(ColorStateList.valueOf(getColor(R.color.progress_success)));
+                progressBar.setProgress(100);
+            }
         }
-        return content;
+    }
+
+    private static String replacementSkippedChars(String mContent, boolean isParsing) {
+        //locationSkippedChar = findString(mContent, skippedChar);
+        for (int i = 0; i < skippedChar.size(); i++) {
+            mContent = mContent.replace(!isParsing ? skippedChar.get(i) : REPLACEMENT_CHARACTER + i, !isParsing ? REPLACEMENT_CHARACTER + i : skippedChar.get(i));
+        }
+        return mContent;
     }
 
     /*
@@ -205,81 +231,81 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     */
 
 
-    private void saveXmlTranslate(Uri UriSave) {
-        content = edt.getText().toString();
-        content = replacementSkippedChars(content, true);
-        String[] arrNameAttribute = nameAttribute.split("\n");
-        String[] arrContent = content.toString().split("\n");
-        createdTranslateXml(arrNameAttribute, arrContent, UriSave);
+    @NonNull
+    private String[] textToArray(String textToArray) {
+        return textToArray.toString().split("\n");
+    }
+    private String arrayToText(String[] arrayToText) {
+        StringBuilder sb = new StringBuilder();
+        for (String s : arrayToText) {
+            sb.append(s).append("\n");
+        }
+        return sb.toString();
     }
 
 
-    private void parserXml(Uri selectedFile) {
-        edt.setText(R.string.file_parser);
-        progressBar.setProgress(0);
-        progressBar.setProgressTintList(clrDefault);
-        new Thread(() -> {
-            try {
-                InputStream inputStream = getContentResolver().openInputStream(selectedFile);
-                DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-                DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-                Document doc = dBuilder.parse(inputStream);
-                doc.getDocumentElement().normalize();
-                NodeList nList = doc.getElementsByTagName("string");
+    @Nullable
+    private String parserXml(Uri selectedFile) {
+        try {
+            InputStream inputStream = getContentResolver().openInputStream(selectedFile);
+            DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+            Document doc = dBuilder.parse(inputStream);
+            doc.getDocumentElement().normalize();
+            NodeList nList = doc.getElementsByTagName("string");
 
-                nameAttribute = "";
-                content = "";
-                int nListLength = nList.getLength();
-                for (int i = 0; i < nListLength - 1; i++) {
-                    Node nNode = nList.item(i);
-                    // חיפוש והוספת הערך של ה-attribut name למערך
-                    if (nNode.getNodeType() == Node.ELEMENT_NODE) {
-                        Element element = (Element) nNode;
-                        nameAttribute += element.getAttribute("name") + "\n";
-                    }
-
-                    content += nNode.getTextContent().trim() + "\n";
-
-                    int progress = (i * 100) / nListLength; // חישוב התקדמות
-                    runOnUiThread(() -> progressBar.setProgress(progress));
+            int nListLength = nList.getLength();
+            arrNameAttribute = new String[nListLength];
+            String content = "";
+            for (int i = 0; i < nListLength - 1; i++) {
+                Node nNode = nList.item(i);
+                // חיפוש והוספת הערך של ה-attribut name למערך
+                if (nNode.getNodeType() == Node.ELEMENT_NODE) {
+                    Element element = (Element) nNode;
+                    arrNameAttribute[i] = element.getAttribute("name");
                 }
 
+                content += nNode.getTextContent().trim() + "\n";
 
-                /**
-                 *So that the last one won't add an unnecessary line drop
-                 */
-                {
-                    Node nNode = nList.item(nListLength - 1);
-                    // חיפוש והוספת הערך של ה-attribut name למערך
-                    if (nNode.getNodeType() == Node.ELEMENT_NODE) {
-                        Element element = (Element) nNode;
-                        nameAttribute += element.getAttribute("name");
-                    }
-
-                    content += nNode.getTextContent().trim();
-
-                    runOnUiThread(() -> progressBar.setProgress(99));
-                }
-
-                if (skippedChar != null && !skippedChar.get(0).isEmpty()) {
-                    content = replacementSkippedChars(content, false);
-                }
-
-                runOnUiThread(() -> {
-                    edt.setText(content);
-                    edt.setEnabled(true);
-                    btnSaveTranslate.setEnabled(true);
-                    progressBar.setProgress(100);
-                    progressBar.setProgressTintList(successColor);
-                });
-            } catch (Exception e) {
-                runOnUiThread(() -> Toast.makeText(MainActivity.this, getText(R.string.error_parsing_file), Toast.LENGTH_SHORT).show()
-                );
-                e.printStackTrace();
+                int progress = (i * 100) / nListLength; // חישוב התקדמות
+                progressBar.setProgress(progress);
             }
-        }).start();
+
+
+            /**
+             *So that the last one won't add an unnecessary line drop
+             */
+            {
+                Node nNode = nList.item(nListLength - 1);
+                // חיפוש והוספת הערך של ה-attribut name למערך
+                if (nNode.getNodeType() == Node.ELEMENT_NODE) {
+                    Element element = (Element) nNode;
+                    arrNameAttribute[arrNameAttribute.length - 1] = element.getAttribute("name");
+                }
+
+                content += nNode.getTextContent().trim();
+
+                progressBar.setProgress(99);
+            }
+
+            if (skippedChar != null && !skippedChar.get(0).isEmpty()) {
+                content = replacementSkippedChars(content, false);
+            }
+
+
+            return content;
+        } catch (
+                Exception e) {
+            Toast.makeText(MainActivity.this, getText(R.string.error_parsing_file), Toast.LENGTH_SHORT).show();
+            e.printStackTrace();
+        }
+        return null;
     }
 
+
+    private void saveFile(Uri fileUri) {
+        createdTranslateXml(arrNameAttribute, textToArray(edt.getText().toString()), fileUri);
+    }
 
     private void createdTranslateXml(String[] arrNameAttribute, String[] arrContent, Uri uriSave) {
         progressBar.setProgressTintList(clrDefault);
@@ -315,7 +341,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             StreamResult result = new StreamResult(outputStream);
             transformer.transform(source, result);
             progressBar.setProgress(100);
-            progressBar.setProgressTintList(successColor);
+            progressBar.setProgressTintList(ColorStateList.valueOf(getColor(R.color.progress_success)));
             btnSaveTranslate.setEnabled(false);
             edt.setEnabled(false);
             edt.setText(R.string.save_successful);
@@ -324,12 +350,81 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             e.printStackTrace();
         }
     }
+    private void autoTranslate(String content) {
+        DownloadConditions conditions = new DownloadConditions.Builder()
+                .build();
+        englishHebrewTranslator.downloadModelIfNeeded(conditions)
+                .addOnSuccessListener(
+                        new OnSuccessListener() {
+                            @Override
+                            public void onSuccess(Object o) {
+                                // Model downloaded successfully. Okay to start translating.
+                                // (Set a flag, unhide the translation UI, etc.)
+
+                                String[] arrContent = textToArray(content);
+                                final int ARR_NAME_CONTENT_LENGTH = arrContent.length;
+                                for (int i = 0; i < ARR_NAME_CONTENT_LENGTH; i++) {
+                                    int finalI = i;
+                                    englishHebrewTranslator.translate(arrContent[i])
+                                            .addOnSuccessListener(
+                                                    new OnSuccessListener() {
+                                                        @Override
+                                                        public void onSuccess(@NonNull Object content) {
+                                                            // Translation successful.
+                                                            arrContent[finalI] = content.toString();
+                                                            double percentage = ((double) finalI / (double) ARR_NAME_CONTENT_LENGTH) * 100;
+                                                            progressBar.setProgress((int) percentage);
+                                                            if (finalI == ARR_NAME_CONTENT_LENGTH-1){
+                                                                edt.setText(arrayToText(arrContent));
+                                                                edt.setEnabled(true);
+                                                                btnSaveTranslate.setEnabled(true);
+                                                                progressBar.setProgressTintList(ColorStateList.valueOf(getColor(R.color.progress_success)));
+                                                                progressBar.setProgress(100);
+                                                            }
+                                                        }
+                                                    })
+                                            .addOnFailureListener(
+                                                    e -> {
+                                                        // Error.
+                                                        // ...
+                                                        edt.setText(R.string.error_auto_translate);
+                                                    });
+                                }
+                                }
+                        })
+                .addOnFailureListener(
+                        e -> {
+                            // Model couldn’t be downloaded or other internal error.
+                            // ...
+                            edt.setText(R.string.error_download_auto_translate_model);
+                        });
+    }
+
+    /**
+     * created credit dialog.
+     * show when open or restart the app.
+     */
+    private void startCreditDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setView(R.layout.credit_dialog);
+        builder.setCancelable(false);
+        dialog = builder.create();
+        dialog.show();
+        TextView txt = dialog.findViewById(R.id.show_html);
+        txt.setText(Html.fromHtml(getText(R.string.Details_about_the_developer).toString(), Html.FROM_HTML_MODE_LEGACY));
+        dialog.findViewById(R.id.btn_credit_ok).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialog.dismiss();
+            }
+        });
+    }
 
     @Override
     protected void onRestart() {
         super.onRestart();
         if (isDialog)
-        dialog.show();
+            dialog.show();
     }
 
     @Override
