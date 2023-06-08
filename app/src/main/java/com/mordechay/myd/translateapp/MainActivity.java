@@ -48,13 +48,14 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener, IsPremiumListener {
 
     private static final String FILE_TYPE = "text/xml";
     private static final String REPLACEMENT_CHARACTER = "@@@";
     private static final String DEFAULT_SHRED_PREFERENCES = "save_data";
     private static final String SKIPPED_CHARS_KEY = "skipped_chars";
 
+    private TextView txtBillingState;
     private CheckBox chbAutoTranslate;
     private Button btnSaveTranslate;
     private TextView edt;
@@ -70,6 +71,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private final TranslatorOptions options = new TranslatorOptions.Builder().setSourceLanguage(TranslateLanguage.ENGLISH).setTargetLanguage(TranslateLanguage.HEBREW).build();
     private final Translator englishHebrewTranslator = Translation.getClient(options);
     //private static int[] locationSkippedChar;
+    private BillingPremium blm;
 
 
 
@@ -104,6 +106,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         startCreditDialog();
         skippedChar = new ArrayList<>(getSharedPreferences(DEFAULT_SHRED_PREFERENCES, 0).getStringSet(SKIPPED_CHARS_KEY, new HashSet<>(Arrays.asList("%s", "%1$s", "%2$s", "%3$s", "%4$s", "%5$s", "%6$s", "%7$s", "%8$s", "%9$s", "%d", "%1$d", "%2$d", "%3$d", "%4$d", "%5$d", "%6$d", "%7$d", "%8$d", "%9$d"))));
+        txtBillingState = findViewById(R.id.textView3);
         progressBar = findViewById(R.id.progress_bar);
         progressBar.setMax(100);
         progressBar.setProgress(0);
@@ -115,6 +118,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         findViewById(R.id.btn_select_file).setOnClickListener(this);
         btnSaveTranslate = findViewById(R.id.btn_translate);
         btnSaveTranslate.setOnClickListener(this);
+        blm = new BillingPremium(this, this);
     }
 
 
@@ -182,23 +186,27 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         progressBar.setProgress(0);
         progressBar.setProgressTintList(clrDefault);
         boolean isAutoTranslate = chbAutoTranslate.isChecked();
-        String content = parserXml(fileUri);
-        if(content != null) {
-            if (isAutoTranslate){
-                edt.setText(R.string.file_translator);
-                progressBar.setProgress(100);
-                ColorStateList clrRed = ColorStateList.valueOf(getColor(R.color.progress_red));
-                progressBar.setProgress(0);
-                progressBar.setProgressTintList(clrRed);
-                autoTranslate(content);
-            }else {
-                edt.setText(content);
-                edt.setEnabled(true);
-                btnSaveTranslate.setEnabled(true);
-                progressBar.setProgressTintList(ColorStateList.valueOf(getColor(R.color.progress_success)));
-                progressBar.setProgress(100);
-            }
-        }
+        new Thread(() -> {
+            String content = parserXml(fileUri);
+            runOnUiThread(() -> {
+                if(content != null) {
+                    if (isAutoTranslate){
+                        edt.setText(R.string.file_translator);
+                        progressBar.setProgress(100);
+                        ColorStateList clrRed = ColorStateList.valueOf(getColor(R.color.progress_red));
+                        progressBar.setProgress(0);
+                        progressBar.setProgressTintList(clrRed);
+                        autoTranslate(content);
+                    }else {
+                        edt.setText(content);
+                        edt.setEnabled(true);
+                        btnSaveTranslate.setEnabled(true);
+                        progressBar.setProgressTintList(ColorStateList.valueOf(getColor(R.color.progress_success)));
+                        progressBar.setProgress(100);
+                    }
+                }
+            });
+        }).start();
     }
 
     private static String replacementSkippedChars(String mContent, boolean isParsing) {
@@ -350,53 +358,51 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
     private void autoTranslate(String content) {
-        DownloadConditions conditions = new DownloadConditions.Builder()
-                .build();
-        englishHebrewTranslator.downloadModelIfNeeded(conditions)
-                .addOnSuccessListener(
-                        new OnSuccessListener() {
-                            @Override
-                            public void onSuccess(Object o) {
-                                // Model downloaded successfully. Okay to start translating.
-                                // (Set a flag, unhide the translation UI, etc.)
+         new Thread(() -> {
+             DownloadConditions conditions = new DownloadConditions.Builder()
+                     .build();
+             englishHebrewTranslator.downloadModelIfNeeded(conditions)
+                     .addOnSuccessListener(
+                             (OnSuccessListener) o -> {
+                                 // Model downloaded successfully. Okay to start translating.
+                                 // (Set a flag, unhide the translation UI, etc.)
 
-                                String[] arrContent = textToArray(content);
-                                final int ARR_NAME_CONTENT_LENGTH = arrContent.length;
-                                for (int i = 0; i < ARR_NAME_CONTENT_LENGTH; i++) {
-                                    int finalI = i;
-                                    englishHebrewTranslator.translate(arrContent[i])
-                                            .addOnSuccessListener(
-                                                    new OnSuccessListener() {
-                                                        @Override
-                                                        public void onSuccess(@NonNull Object content) {
-                                                            // Translation successful.
-                                                            arrContent[finalI] = content.toString();
-                                                            double percentage = ((double) finalI / (double) ARR_NAME_CONTENT_LENGTH) * 100;
-                                                            progressBar.setProgress((int) percentage);
-                                                            if (finalI == ARR_NAME_CONTENT_LENGTH-1){
-                                                                edt.setText(arrayToText(arrContent));
-                                                                edt.setEnabled(true);
-                                                                btnSaveTranslate.setEnabled(true);
-                                                                progressBar.setProgressTintList(ColorStateList.valueOf(getColor(R.color.progress_success)));
-                                                                progressBar.setProgress(100);
-                                                            }
-                                                        }
-                                                    })
-                                            .addOnFailureListener(
-                                                    e -> {
-                                                        // Error.
-                                                        // ...
-                                                        edt.setText(R.string.error_auto_translate);
-                                                    });
-                                }
-                                }
-                        })
-                .addOnFailureListener(
-                        e -> {
-                            // Model couldn’t be downloaded or other internal error.
-                            // ...
-                            edt.setText(R.string.error_download_auto_translate_model);
-                        });
+                                 String[] arrContent = textToArray(content);
+                                 final int ARR_NAME_CONTENT_LENGTH = arrContent.length;
+                                 for (int i = 0; i < ARR_NAME_CONTENT_LENGTH; i++) {
+                                     int finalI = i;
+                                     englishHebrewTranslator.translate(arrContent[i])
+                                             .addOnSuccessListener(
+                                                     new OnSuccessListener() {
+                                                         @Override
+                                                         public void onSuccess(@NonNull Object content1) {
+                                                             // Translation successful.
+                                                             arrContent[finalI] = content1.toString();
+                                                             double percentage = ((double) finalI / (double) ARR_NAME_CONTENT_LENGTH) * 100;
+                                                             runOnUiThread(() -> {
+                                                                 progressBar.setProgress((int) percentage);
+                                                                 if (finalI == ARR_NAME_CONTENT_LENGTH-1){
+                                                                     edt.setText(arrayToText(arrContent));
+                                                                     edt.setEnabled(true);
+                                                                     btnSaveTranslate.setEnabled(true);
+                                                                     progressBar.setProgressTintList(ColorStateList.valueOf(getColor(R.color.progress_success)));
+                                                                     progressBar.setProgress(100);
+                                                                 }
+                                                             });
+                                                         }
+                                                     })
+                                             .addOnFailureListener(
+                                                     e -> {
+                                                         runOnUiThread(() -> edt.setText(R.string.error_auto_translate));
+                                                     });
+                                 }
+                             })
+                     .addOnFailureListener(
+                             e -> {
+                                 // Model couldn’t be downloaded or other internal error.
+                                 runOnUiThread(() -> edt.setText(R.string.error_download_auto_translate_model));
+                             });
+         }).start();
     }
 
     /**
@@ -420,6 +426,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        blm.checkingPremium();
+    }
+
+    @Override
     protected void onRestart() {
         super.onRestart();
         if (isDialog)
@@ -431,6 +443,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onPause();
         if (dialog != null) {
             dialog.dismiss();
+        }
+    }
+
+    @Override
+    public void premiumUpdateListener(boolean isPremium) {
+        Log.d(getClass().getName(), "is premium: " + isPremium);
+        if(isPremium) {
+            txtBillingState.setBackgroundTintList(ColorStateList.valueOf(getColor(R.color.billing_success)));
+            txtBillingState.setText("מצב פרימיום ללא תשלום.");
+        }else {
+            txtBillingState.setBackgroundTintList(ColorStateList.valueOf(getColor(R.color.billing_success)));
+            txtBillingState.setText("מצב חינמי ללא תשלום.");
         }
     }
 }

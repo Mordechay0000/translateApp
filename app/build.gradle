@@ -5,6 +5,14 @@ plugins {
 }
 
 android {
+    signingConfigs {
+        debug {
+            storeFile file('/Users/mor/Documents/programming/project/מפתח חתימה.jks')
+            storePassword 'Mf0548572998'
+            keyAlias 'Mordechay-Mefateach'
+            keyPassword 'Mf0548572998'
+        }
+    }
     namespace 'com.mordechay.myd.translateapp'
     compileSdk 33
 
@@ -12,8 +20,8 @@ android {
         applicationId "com.mordechay.myd.translateapp"
         minSdk 26
         targetSdk 33
-        versionCode 14
-        versionName '2.0.4'
+        versionCode 17
+        versionName '2.0.5'
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -23,6 +31,9 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            signingConfig signingConfigs.debug
         }
     }
     compileOptions {

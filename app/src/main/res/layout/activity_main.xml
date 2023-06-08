@@ -8,6 +8,14 @@
     android:orientation="vertical"
     tools:context=".MainActivity">
 
+    <TextView
+        android:id="@+id/textView3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#FFFFFF"
+        android:backgroundTint="#FFD225"
+        android:text="מתחבר לספריית התשלומים" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -61,7 +69,7 @@
         android:id="@+id/chb_auto_translate"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="תרגום אוטמטי" />
+        android:text="תרגום אוטומטי" />
 
     <LinearLayout
         android:layout_width="match_parent"

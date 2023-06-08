@@ -10,4 +10,5 @@
     <color name="grey_background">#74CCCCCC</color>
     <color name="progress_red">#FA0C0C</color>
     <color name="progress_success">#1ABA2A</color>
+    <color name="billing_success">#1ABA2A</color>
 </resources>
