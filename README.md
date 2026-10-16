@@ -12,11 +12,4 @@ Android app for translating `strings.xml` resource files.
 7. Done – you now have a translated resource file
 
 #### License
-This project is licensed under [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 (CC BY-NC-SA 4.0)](https://creativecommons.org/licenses/by-nc-sa/4.0/). See [LICENSE.md](LICENSE.md).
-
-In short:
-- **Attribution** – keep the copyright and credit as they are.
-- **NonCommercial** – the code may not be used for commercial purposes.
-- **ShareAlike** – anything built on this code must be released under the same license.
-
-Versions published before this change remain available under GPL v3.
+[CC BY-NC-SA 4.0](LICENSE.md)
